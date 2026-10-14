@@ -109,6 +109,13 @@ Configuration:
 Twilio API coverage:
   Accounts, API keys, phone numbers, Messaging, Verify, Voice, Conversations, webhooks, simulators, and inspector.
 
+Slack interactivity:
+  Configure slack.oauth_apps[].interactivity_url and slack.signing_secret for signed button and modal callbacks.
+  POST /_slack/simulate/block-actions clicks a stored button; POST /_slack/simulate/view-submission submits a modal.
+  Button response URLs support private/public replies and source updates for five uses within 30 minutes.
+  Modal acknowledgements can close, clear, update, push, or show errors. Triggers expire in 3 seconds by default;
+  slack.view_trigger_ttl_seconds can extend their lifetime for local tests.
+
 Slack app lifecycle:
   POST /api/apps.uninstall accepts client_id, client_secret, and a user token or configured development token.
   It revokes the app's OAuth credentials in that workspace and emits app_uninstalled and tokens_revoked.

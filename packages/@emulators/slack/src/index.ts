@@ -1,14 +1,5 @@
-import { createHmac } from "crypto";
 import type { Context, Hono } from "@emulators/core";
-import type {
-  ServicePlugin,
-  Store,
-  WebhookDispatcher,
-  WebhookHeaderContext,
-  TokenMap,
-  AppEnv,
-  RouteContext,
-} from "@emulators/core";
+import type { ServicePlugin, Store, WebhookDispatcher, TokenMap, AppEnv, RouteContext } from "@emulators/core";
 import { getSlackStore } from "./store.js";
 import { generateSlackId, slackError } from "./helpers.js";
 import { isSlackTokenRevoked, slackRequestToken } from "./tokens.js";
@@ -26,6 +17,8 @@ import { filesRoutes } from "./routes/files.js";
 import { pinsRoutes } from "./routes/pins.js";
 import { bookmarksRoutes } from "./routes/bookmarks.js";
 import { viewsRoutes } from "./routes/views.js";
+import { interactionRoutes } from "./routes/interactions.js";
+import { slackRequestHeaders } from "./signing.js";
 import { inspectorRoutes } from "./routes/inspector.js";
 
 export { getSlackStore, type SlackStore } from "./store.js";
@@ -65,6 +58,7 @@ export interface SlackSeedConfig {
     bot_id?: string;
     bot_user_id?: string;
     bot_name?: string;
+    interactivity_url?: string;
   }>;
   tokens?: Array<{
     token: string;
@@ -85,6 +79,7 @@ export interface SlackSeedConfig {
   }>;
   strict_scopes?: boolean;
   signing_secret?: string;
+  view_trigger_ttl_seconds?: number;
 }
 
 const DEFAULT_SLACK_SCOPES = [
@@ -118,22 +113,6 @@ const DEFAULT_SLACK_SCOPES = [
   "reactions:write",
   "team:read",
 ];
-
-function slackWebhookHeaders(store: Store, { body }: WebhookHeaderContext): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  const signingSecret = store.getData<string>("slack.signing_secret");
-
-  if (signingSecret) {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signature = createHmac("sha256", signingSecret).update(`v0:${timestamp}:${body}`).digest("hex");
-    headers["X-Slack-Request-Timestamp"] = String(timestamp);
-    headers["X-Slack-Signature"] = `v0=${signature}`;
-  }
-
-  return headers;
-}
 
 function seedDefaults(store: Store, _baseUrl: string): void {
   const ss = getSlackStore(store);
@@ -311,6 +290,9 @@ export function seedFromConfig(store: Store, _baseUrl: string, config: SlackSeed
     for (const oa of config.oauth_apps) {
       const existing = ss.oauthApps.findOneBy("client_id", oa.client_id);
       if (existing) {
+        if (oa.interactivity_url !== undefined) {
+          ss.oauthApps.update(existing.id, { interactivity_url: oa.interactivity_url });
+        }
         if (!existing.app_id) {
           ss.oauthApps.update(existing.id, { app_id: oa.app_id ?? generateSlackId("A") });
         }
@@ -328,6 +310,7 @@ export function seedFromConfig(store: Store, _baseUrl: string, config: SlackSeed
         bot_id: oa.bot_id,
         bot_user_id: oa.bot_user_id,
         bot_name: oa.bot_name,
+        interactivity_url: oa.interactivity_url,
       });
     }
 
@@ -376,6 +359,13 @@ export function seedFromConfig(store: Store, _baseUrl: string, config: SlackSeed
     }
   }
 
+  if (config.view_trigger_ttl_seconds !== undefined) {
+    if (!Number.isFinite(config.view_trigger_ttl_seconds) || config.view_trigger_ttl_seconds <= 0) {
+      throw new Error("Slack view_trigger_ttl_seconds must be a positive number");
+    }
+    store.setData("slack.view_trigger_ttl_seconds", config.view_trigger_ttl_seconds);
+  }
+
   if (config.signing_secret !== undefined) {
     store.setData("slack.signing_secret", config.signing_secret);
   }
@@ -388,7 +378,7 @@ export function seedFromConfig(store: Store, _baseUrl: string, config: SlackSeed
 export const slackPlugin: ServicePlugin = {
   name: "slack",
   register(app: Hono<AppEnv>, store: Store, webhooks: WebhookDispatcher, baseUrl: string, tokenMap?: TokenMap): void {
-    webhooks.setHeaderFactory((context) => slackWebhookHeaders(store, context));
+    webhooks.setHeaderFactory(({ body }) => slackRequestHeaders(store, body));
 
     app.use("*", async (c, next) => {
       const token = slackRequestToken(c);
@@ -413,6 +403,7 @@ export const slackPlugin: ServicePlugin = {
     pinsRoutes(ctx);
     bookmarksRoutes(ctx);
     viewsRoutes(ctx);
+    interactionRoutes(ctx);
     inspectorRoutes(ctx);
   },
   seed(store: Store, baseUrl: string): void {
