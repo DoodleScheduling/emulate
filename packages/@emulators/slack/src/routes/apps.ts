@@ -1,6 +1,6 @@
 import { constantTimeSecretEqual, type RouteContext } from "@emulators/core";
-import { buildSlackEventEnvelope } from "../events.js";
-import { generateTs, parseSlackBody, slackError, slackOk } from "../helpers.js";
+import { dispatchSlackEvent } from "../events.js";
+import { parseSlackBody, slackError, slackOk } from "../helpers.js";
 import { getSlackStore } from "../store.js";
 import { isSlackTokenRevoked, revokeSlackTokens, slackRequestToken } from "../tokens.js";
 
@@ -67,25 +67,7 @@ export function appsRoutes({ app, store, webhooks, tokenMap }: RouteContext): vo
     // Capture the recipient before removing its installation. Credentials are
     // already invalid when either callback reaches the application.
     const dispatch = async (event: Record<string, unknown>) => {
-      await webhooks.dispatch(
-        String(event.type),
-        undefined,
-        {
-          ...buildSlackEventEnvelope(store, installation.team_id, { event_ts: generateTs(), ...event }),
-          api_app_id: installation.app_id,
-          token: store.getData<string>("slack.verification_token") ?? "emulate-verification-token",
-          authorizations: [
-            {
-              enterprise_id: null,
-              team_id: installation.team_id,
-              user_id: installation.bot_user_id,
-              is_bot: true,
-              is_enterprise_install: false,
-            },
-          ],
-        },
-        "slack",
-      );
+      await dispatchSlackEvent(store, webhooks, installation.team_id, event, installation);
     };
     await dispatch({ type: "app_uninstalled" });
     await dispatch({ type: "tokens_revoked", tokens: revokedUsers });

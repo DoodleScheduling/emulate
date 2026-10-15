@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { RouteContext } from "@emulators/core";
 import type { SlackJsonObject, SlackMessage, SlackView } from "../entities.js";
-import { buildSlackEventEnvelope } from "../events.js";
+import { dispatchSlackEvent } from "../events.js";
 import {
   formatSlackMessage,
   formatSlackView,
@@ -10,6 +10,7 @@ import {
   normalizeSlackMessageText,
   parseSlackBody,
   parseSlackRichMessageFields,
+  slackBotMessageFields,
   slackError,
   slackOk,
 } from "../helpers.js";
@@ -329,6 +330,7 @@ export function interactionRoutes({ app, store, baseUrl, webhooks }: RouteContex
     if (replace && source) {
       const updated = sourceCollection.update(source.id, {
         ...rich.fields,
+        ...(source.bot_id ? { bot_id: source.bot_id, app_id: source.app_id } : {}),
         ...(typeof body.text === "string"
           ? { text: normalized.text, blocks: rich.fields.blocks, attachments: rich.fields.attachments }
           : {}),
@@ -349,8 +351,7 @@ export function interactionRoutes({ app, store, baseUrl, webhooks }: RouteContex
         ts: generateTs(),
         channel_id: response.channel_id,
         user: response.bot_user_id,
-        bot_id: response.bot_id,
-        app_id: response.app_id,
+        ...slackBotMessageFields(store, response.bot_id, channel.team_id, response.app_id),
         interaction_app_id: response.app_id,
         text: normalized.text,
         type: "message",
@@ -383,12 +384,7 @@ export function interactionRoutes({ app, store, baseUrl, webhooks }: RouteContex
   });
 
   async function messageEvent(teamId: string, event: SlackJsonObject) {
-    await webhooks.dispatch(
-      "message",
-      undefined,
-      buildSlackEventEnvelope(store, teamId, { event_ts: generateTs(), ...event }),
-      "slack",
-    );
+    await dispatchSlackEvent(store, webhooks, teamId, event);
   }
 }
 

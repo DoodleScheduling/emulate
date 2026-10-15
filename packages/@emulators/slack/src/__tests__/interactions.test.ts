@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getSlackStore, seedFromConfig } from "../index.js";
 import {
   authHeaders,
+  captureFetchRequests,
+  registerSlackEventSubscription,
   createSlackTestApp,
   slackTestBaseUrl as base,
   startSlackTestEmulator,
@@ -281,6 +283,8 @@ describe("Slack interactions", () => {
     receiver();
     const clicked = await click(setup);
     const path = new URL(clicked.payload.response_url).pathname;
+    const capture = captureFetchRequests();
+    registerSlackEventSubscription(setup.webhooks, ["message"]);
     const ss = getSlackStore(setup.store);
     const messages = ss.messages.all().length;
     expect(await post(setup, path, { text: "Only you" }, "")).toEqual({ ok: true });
@@ -295,13 +299,38 @@ describe("Slack interactions", () => {
       ),
     ).toEqual({ ok: true });
     expect(ss.messages.findOneBy("ts", clicked.payload.message.ts)!.reply_count).toBe(1);
-    expect(await post(setup, path, { text: "Changed", replace_original: true }, "")).toEqual({ ok: true });
+    const replies = await post(setup, "/api/conversations.replies", {
+      channel: ss.channels.findOneBy("name", "general")!.channel_id,
+      ts: clicked.payload.message.ts,
+    });
+    expect(replies.messages.find((message: any) => message.text === "Public")).toMatchObject({
+      bot_id: botId,
+      app_id: appId,
+      bot_profile: { id: botId, app_id: appId },
+    });
+    expect(
+      await post(setup, path, { text: "Changed", replace_original: true, bot_id: "B_SPOOF", app_id: "A_SPOOF" }, ""),
+    ).toEqual({ ok: true });
     expect(ss.messages.findOneBy("ts", clicked.payload.message.ts)).toMatchObject({
       text: "Changed",
       blocks: undefined,
+      bot_id: botId,
+      app_id: appId,
+      bot_profile: { id: botId, app_id: appId },
     });
     expect(await post(setup, path, { delete_original: true }, "")).toEqual({ ok: true });
     expect(ss.messages.findOneBy("ts", clicked.payload.message.ts)).toBeUndefined();
+    const envelopes = capture.jsonBodies() as Array<Record<string, any>>;
+    expect(envelopes).toHaveLength(3);
+    for (const envelope of envelopes) {
+      expect(envelope).toMatchObject({
+        api_app_id: appId,
+        authorizations: [expect.objectContaining({ user_id: botUserId, is_bot: true })],
+        event: { type: "message", channel_type: "channel", event_ts: expect.any(String) },
+      });
+      const message = envelope.event.message ?? envelope.event.previous_message ?? envelope.event;
+      expect(message).toMatchObject({ bot_id: botId, app_id: appId, bot_profile: { id: botId, app_id: appId } });
+    }
   });
 
   it("keeps ephemeral interactions and replacements private to the acting user", async () => {

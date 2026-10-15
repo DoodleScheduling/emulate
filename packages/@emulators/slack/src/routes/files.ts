@@ -1,5 +1,5 @@
 import type { Context, RouteContext } from "@emulators/core";
-import { buildSlackEventEnvelope, resolveSlackEventTeamId } from "../events.js";
+import { dispatchSlackEvent, resolveSlackEventTeamId } from "../events.js";
 import type {
   SlackChannel,
   SlackFile,
@@ -303,17 +303,12 @@ export function filesRoutes(ctx: RouteContext): void {
         }
 
         const updatedMessage = ss().messages.update(msg.id, { files: messageFiles })!;
-        await webhooks.dispatch(
-          "message",
-          undefined,
-          buildSlackEventEnvelope(store, resolveSlackEventTeamId(c, store, channel.team_id), {
-            ...formatSlackMessage(updatedMessage),
-            type: "message",
-            subtype: "file_share",
-            channel: channel.channel_id,
-          }),
-          "slack",
-        );
+        await dispatchSlackEvent(store, webhooks, resolveSlackEventTeamId(c, store, channel.team_id), {
+          ...formatSlackMessage(updatedMessage),
+          type: "message",
+          subtype: "file_share",
+          channel: channel.channel_id,
+        });
 
         for (const shared of messageFiles) {
           const index = updatedFiles.findIndex((file) => file.file_id === shared.file_id);
@@ -720,15 +715,10 @@ async function dispatchFileEvent(
   teamId: string,
   extra: Record<string, unknown> = {},
 ) {
-  await webhooks.dispatch(
+  await dispatchSlackEvent(store, webhooks, teamId, {
     type,
-    undefined,
-    buildSlackEventEnvelope(store, teamId, {
-      type,
-      file_id: file.file_id,
-      file: formatSlackFile(file),
-      ...extra,
-    }),
-    "slack",
-  );
+    file_id: file.file_id,
+    file: formatSlackFile(file),
+    ...extra,
+  });
 }

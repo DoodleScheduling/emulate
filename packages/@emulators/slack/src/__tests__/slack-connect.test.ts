@@ -173,6 +173,7 @@ describe("Slack Connect fixtures", () => {
           team_id: localTeam,
           is_ext_shared_channel: true,
           api_app_id: "A_CONNECT",
+          authorizations: [expect.objectContaining({ team_id: localTeam, user_id: botUser, is_bot: true })],
           event: expect.objectContaining({
             type: "app_mention",
             user,

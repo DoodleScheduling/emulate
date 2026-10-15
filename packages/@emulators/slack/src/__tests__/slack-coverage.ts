@@ -50,16 +50,22 @@ export const slackCoverageMatrix: SlackCoverageEntry[] = [
     method: "chat.postMessage",
     route: "POST /api/chat.postMessage",
     status: "partial",
-    testedBy: ["slack-connect.test.ts", "slack.test.ts", "slack-sdk.test.ts", "slack-events.test.ts"],
+    testedBy: [
+      "event-payloads.test.ts",
+      "slack-connect.test.ts",
+      "slack.test.ts",
+      "slack-sdk.test.ts",
+      "slack-events.test.ts",
+    ],
     notes:
-      "Text is limited to 40,000 Unicode code points with Slack message_truncated warning metadata. Thread replies, blocks, attachments, metadata, formatting flags, unfurl flags, client message ids, and DM user id posting round trip. Full membership checks are future work.",
+      "Text is limited to 40,000 Unicode code points with Slack message_truncated warning metadata. Thread replies, blocks, attachments, metadata, formatting flags, unfurl flags, client message ids, and DM user id posting round trip. Bot messages persist bot_id, app_id, and bot_profile; callbacks include recipient app authorization, channel_type, and event_ts. Full membership checks are future work.",
   },
   {
     family: "chat",
     method: "chat.update",
     route: "POST /api/chat.update",
     status: "partial",
-    testedBy: ["slack.test.ts", "slack-sdk.test.ts", "slack-events.test.ts"],
+    testedBy: ["event-payloads.test.ts", "slack.test.ts", "slack-sdk.test.ts", "slack-events.test.ts"],
     notes:
       "Stored text is limited to 40,000 Unicode code points with Slack message_truncated warning metadata. Rich message fields are updated and message_changed events are dispatched.",
   },
@@ -68,7 +74,7 @@ export const slackCoverageMatrix: SlackCoverageEntry[] = [
     method: "chat.delete",
     route: "POST /api/chat.delete",
     status: "partial",
-    testedBy: ["slack.test.ts", "slack-sdk.test.ts", "slack-events.test.ts"],
+    testedBy: ["event-payloads.test.ts", "slack.test.ts", "slack-sdk.test.ts", "slack-events.test.ts"],
     notes: "Stored messages are deleted and message_deleted events are dispatched.",
   },
   {
@@ -196,7 +202,7 @@ export const slackCoverageMatrix: SlackCoverageEntry[] = [
     method: "conversations.history",
     route: "POST /api/conversations.history",
     status: "partial",
-    testedBy: ["slack.test.ts", "slack-sdk.test.ts"],
+    testedBy: ["event-payloads.test.ts", "slack.test.ts", "slack-sdk.test.ts"],
     notes: "Returns top level messages for a channel, including rich message fields. Time filtering is future work.",
   },
   {
@@ -204,7 +210,7 @@ export const slackCoverageMatrix: SlackCoverageEntry[] = [
     method: "conversations.replies",
     route: "POST /api/conversations.replies",
     status: "partial",
-    testedBy: ["slack.test.ts", "slack-sdk.test.ts"],
+    testedBy: ["event-payloads.test.ts", "slack.test.ts", "slack-sdk.test.ts"],
     notes: "Returns parent and replies for a thread, including rich message fields.",
   },
   {
@@ -220,8 +226,8 @@ export const slackCoverageMatrix: SlackCoverageEntry[] = [
     method: "conversations.leave",
     route: "POST /api/conversations.leave",
     status: "partial",
-    testedBy: ["slack-connect.test.ts", "slack.test.ts", "slack-sdk.test.ts"],
-    notes: "Removes the auth user from channel membership.",
+    testedBy: ["event-payloads.test.ts", "slack-connect.test.ts", "slack.test.ts", "slack-sdk.test.ts"],
+    notes: "Removes the auth user from channel membership and emits channel_left or group_left for installed bots.",
   },
   {
     family: "conversations",
@@ -245,8 +251,15 @@ export const slackCoverageMatrix: SlackCoverageEntry[] = [
     method: "conversations.kick",
     route: "POST /api/conversations.kick",
     status: "partial",
-    testedBy: ["slack-connect.test.ts", "slack.test.ts", "slack-sdk.test.ts", "slack-events.test.ts"],
-    notes: "Removes users from public/private channels and MPIMs, with basic errors and member_left_channel events.",
+    testedBy: [
+      "event-payloads.test.ts",
+      "slack-connect.test.ts",
+      "slack.test.ts",
+      "slack-sdk.test.ts",
+      "slack-events.test.ts",
+    ],
+    notes:
+      "Removes users from public/private channels and MPIMs, with basic errors and member_left_channel events, plus channel_left or group_left for removed installed bots.",
   },
   {
     family: "conversations",
