@@ -152,6 +152,21 @@ The destination must not exist. emulate removes inherited ACLs, verifies effecti
 
 ## Google Seed Config
 
+For a Google OAuth client, the CLI accepts `client_secret_file` instead of `client_secret`. Use an absolute mounted path or a path relative to this configuration file. The CLI trims whitespace. Unreadable files, empty values and conflicting secret fields stop startup. Direct library calls still use a secret string. Keep secret files outside Git. Restart to read file changes.
+
+```yaml
+google:
+  strict_scopes: true
+  users:
+    - email: tester@example.com
+  oauth_clients:
+    - client_id: test-client
+      client_secret_file: /run/secrets/google-client-secret
+      redirect_uris: [http://localhost:3000/callback]
+```
+
+Run `npx emulate start --config emulate.config.yaml --no-default-seed` to skip built-in demo fixtures. Configured fixtures still load. Without this flag, the CLI loads built-in demo fixtures first. Custom API initialization does not change.
+
 ```yaml
 google:
   users:

@@ -123,6 +123,7 @@ npx emulate list
 | `--host` | `127.0.0.1` | Listening address; use `0.0.0.0` to allow network access |
 | `-s, --service` | all | Comma-separated services to enable |
 | `--seed` | auto-detect | Path to seed config (YAML or JSON) |
+| `--no-default-seed` | off | Skip built-in demo data; still apply configured seed data |
 | `--base-url` | none | Override advertised base URL (supports `{service}` template) |
 | `--portless` | off | Serve over HTTPS via portless (auto-registers aliases) |
 | `--generated-secrets-file` | none | Generate omitted service secrets and write them to a new owner-only JSON file |
@@ -976,6 +977,23 @@ Checks created with installation tokens include their GitHub App in API response
 OAuth 2.0, OpenID Connect, and mutable Google Workspace-style surfaces for local inbox, calendar, and drive flows.
 
 Google ID tokens are RS256-signed JWTs. The discovery document advertises RS256, and `/oauth2/v3/certs` returns the matching RSA public key used to verify issued tokens.
+
+The CLI accepts `client_secret_file` instead of `client_secret` for Google OAuth clients. Use an absolute mounted file path, or a path relative to the configuration file. The CLI trims surrounding whitespace. An unreadable or empty file, or both secret fields on one client, stops startup. Direct `seedFromConfig` and `createEmulator` calls still take a secret string. Do not commit secret files.
+
+```yaml
+google:
+  strict_scopes: true
+  users:
+    - email: tester@example.com
+  oauth_clients:
+    - client_id: test-client
+      client_secret_file: /run/secrets/google-client-secret
+      redirect_uris: [http://localhost:3000/callback]
+```
+
+Run `npx emulate start --service google --config emulate.config.yaml --no-default-seed` to load only configured fixtures. Without this flag, built-in demo fixtures remain enabled. Secret-file changes require a restart unless a watched configuration reload occurs.
+
+Google JSON and form API routes accept `Content-Encoding: gzip`. Gzip input and decoded output each have a 2 MiB limit. Invalid gzip returns `400`, excessive gzip bodies return `413`, and unsupported encodings return `415`. Requests without compression keep their existing behavior. OAuth token forms are not part of this compressed API-body support.
 
 Google authentication is permissive by default for local bearer-token workflows. Set `google.strict_scopes: true` in seed config to require emulator-issued, unexpired access tokens on Gmail, Calendar, Drive, and userinfo routes. Invalid credentials return `401 UNAUTHENTICATED`; missing method scopes return `403` with `insufficientPermissions`. Strict mode distinguishes read, write, send, settings, and metadata scopes, and userinfo includes only granted identity claims. Revoking an access or refresh token invalidates the linked access and refresh credentials. Discovery, signing keys, and the sign-in page remain public. This mode checks method scopes; resource-specific grants such as `drive.file` and Gmail add-on scopes are not modeled.
 

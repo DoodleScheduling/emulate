@@ -6,6 +6,10 @@ allowed-tools: Bash(npx emulate:*)
 
 # Service Emulation with emulate
 
+`--no-default-seed` skips built-in demo fixtures and keeps configured seed data. It applies to built-in services only and does not change custom API initialization. The default behavior remains unchanged.
+
+Google CLI OAuth clients can use `client_secret_file` instead of `client_secret`. Paths are absolute or relative to the configuration directory. Unreadable or empty files and conflicting secret sources stop startup. Restart to read secret-file changes. Keep secret files outside Git. Direct library calls still use secret strings.
+
 Local drop-in replacement services for CI and no-network sandboxes. Fully stateful, production-fidelity API emulation, not mocks.
 
 ## Quick Start
@@ -47,6 +51,9 @@ npx emulate --port 3000
 
 # Use a seed config file
 npx emulate --seed config.yaml
+
+# Load configured fixtures without built-in demo data
+npx emulate start --config config.yaml --no-default-seed
 
 # Generate omitted service secrets into a private file
 npx emulate start --seed config.yaml --generated-secrets-file .emulate-secrets.json

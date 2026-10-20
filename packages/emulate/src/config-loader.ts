@@ -47,6 +47,29 @@ const isRecord = (value: unknown): value is Record<string, any> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 export const isBuiltin = (value: string): value is ServiceName => Object.hasOwn(SERVICE_REGISTRY, value);
 
+function resolveGoogleSecrets(seed: ServiceConfig["seed"], directory: string): ServiceConfig["seed"] {
+  if (!isRecord(seed) || !Array.isArray(seed.oauth_clients)) return seed;
+  return {
+    ...seed,
+    oauth_clients: seed.oauth_clients.map((client: unknown) => {
+      if (!isRecord(client) || !Object.hasOwn(client, "client_secret_file")) return client;
+      if (Object.hasOwn(client, "client_secret"))
+        throw new Error("Google OAuth client must use only one of client_secret and client_secret_file");
+      if (typeof client.client_secret_file !== "string" || !client.client_secret_file.trim())
+        throw new Error("Google OAuth client_secret_file must be a non-empty file path");
+      let secret: string;
+      try {
+        secret = readFileSync(resolve(directory, client.client_secret_file), "utf8").trim();
+      } catch {
+        throw new Error("Cannot read Google OAuth client_secret_file");
+      }
+      if (!secret) throw new Error("Google OAuth client_secret_file must not be empty");
+      const { client_secret_file: _file, ...rest } = client;
+      return { ...rest, client_secret: secret };
+    }),
+  };
+}
+
 export async function loadConfig(
   options: { config?: string; seed?: string; service?: string; cwd?: string } = {},
   onDependenciesChange?: (files: string[]) => void,
@@ -147,6 +170,7 @@ export async function loadConfig(
         );
       services.push({
         ...entry,
+        seed: emulator === "google" ? resolveGoogleSecrets(entry.seed, directory) : entry.seed,
         name,
         emulator: emulator as ServiceName | EmulatorDefinition,
         source,

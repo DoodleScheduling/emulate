@@ -68,6 +68,8 @@ Google authentication is permissive by default for local bearer-token workflows.
 
 ## Calendar
 
+Google JSON and form API bodies accept `Content-Encoding: gzip`. Compressed input and decoded output each have a 2 MiB limit. Invalid gzip returns `400`, excessive bodies return `413`, and unsupported encodings return `415`. Uncompressed requests and authentication checks keep their existing behavior. OAuth token forms are not included.
+
 - `GET /discovery/v1/apis/calendar/v3/rest` - public Calendar v3 REST discovery document
 - `GET /calendar/v3/users/:userId/calendarList` - list calendars
 - `GET /calendar/v3/calendars/:calendarId/events` - list events

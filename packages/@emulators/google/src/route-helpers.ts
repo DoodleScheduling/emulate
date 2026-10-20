@@ -1,4 +1,5 @@
-import type { Context } from "@emulators/core";
+import { ApiError, type Context } from "@emulators/core";
+import { gunzipSync } from "node:zlib";
 import type { GoogleCalendarEventInput } from "./calendar-helpers.js";
 import type { GoogleDriveItemInput } from "./drive-helpers.js";
 import type { GoogleMessageInput } from "./helpers.js";
@@ -28,7 +29,24 @@ export function requireGmailUser(c: Context): string | Response {
 
 export async function parseGoogleBody(c: Context): Promise<Record<string, unknown>> {
   const contentType = c.req.header("Content-Type") ?? "";
-  const rawText = await c.req.text();
+  const encoding = c.req.header("Content-Encoding")?.trim().toLowerCase();
+  let rawText: string;
+  if (encoding === "gzip") {
+    const limit = 2 * 1024 * 1024;
+    const compressed = Buffer.from(await c.req.arrayBuffer());
+    if (compressed.length > limit) throw new ApiError(413, "Gzip request body exceeds 2 MiB");
+    try {
+      rawText = gunzipSync(compressed, { maxOutputLength: limit }).toString("utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ERR_BUFFER_TOO_LARGE")
+        throw new ApiError(413, "Decoded gzip request body exceeds 2 MiB");
+      throw new ApiError(400, "Invalid gzip request body");
+    }
+  } else if (!encoding || encoding === "identity") {
+    rawText = await c.req.text();
+  } else {
+    throw new ApiError(415, "Unsupported Content-Encoding");
+  }
 
   if (!rawText) return {};
 

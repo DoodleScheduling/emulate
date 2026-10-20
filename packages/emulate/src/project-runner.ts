@@ -117,7 +117,7 @@ export async function prepareProject(
           runtime.webhooks.clear();
           runtime.store.reset();
         });
-        seedPreparedService(item, runtime.store, runtime.webhooks);
+        seedPreparedService(item, runtime.store, runtime.webhooks, options.defaultSeed);
         const secrets = existing?.secrets ?? result.generatedSecrets;
         if (secrets.length)
           metadata.retained[service.name] = { emulator: service.emulator, input, config: item.svcSeedConfig!, secrets };

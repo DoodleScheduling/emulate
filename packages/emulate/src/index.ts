@@ -86,11 +86,13 @@ AWS API coverage:
 
 Google Calendar discovery:
   GET /discovery/v1/apis/calendar/v3/rest returns the public discovery document for the emulated Calendar v3 surface.
+  Google JSON and form API bodies accept gzip, limited to 2 MiB compressed and decoded. OAuth token forms are excluded.
 
 Google OIDC:
   Discovery advertises RS256 ID tokens, and GET /oauth2/v3/certs returns the RSA public key used to verify them.
   Set google.strict_scopes: true in seed config to validate issued access tokens, expiry, revocation, and method scopes.
   Strict mode returns Google-style 401/403 errors and limits userinfo claims; bearer-token defaults remain permissive.
+  CLI OAuth clients can use client_secret_file instead of client_secret. Unreadable, empty or conflicting sources fail startup.
 
 Resend API coverage:
   POST /emails and POST /emails/batch support 24-hour Idempotency-Key replay without duplicate emails or webhooks.
@@ -177,6 +179,7 @@ program
   .option("-s, --service <services>", "Comma-separated services to enable")
   .option("--seed <file>", "Path to seed config file")
   .option("--config <file>", "Path to TypeScript, JavaScript, YAML, or JSON configuration")
+  .option("--no-default-seed", "Skip built-in demo data; still apply configured seed data")
   .option("--watch", "Watch imports and fixtures; successful reloads reset state to seed")
   .option("--base-url <url>", "Override advertised base URL (supports {service} template)")
   .option("--portless", "Serve over HTTPS via portless (auto-registers aliases)")
@@ -200,6 +203,7 @@ program
       baseUrl: opts.baseUrl,
       portless: opts.portless,
       generatedSecretsFile: opts.generatedSecretsFile,
+      defaultSeed: opts.defaultSeed,
     };
     try {
       await projectStartCommand(options);

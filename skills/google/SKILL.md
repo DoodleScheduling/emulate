@@ -8,6 +8,12 @@ allowed-tools: Bash(npx emulate:*), Bash(curl:*)
 
 OAuth 2.0 and OpenID Connect emulation with authorization code flow, PKCE support, ID tokens, OIDC discovery, refresh tokens, plus Gmail, Google Calendar, and Google Drive REST API surfaces.
 
+For CLI configuration, a Google OAuth client can use `client_secret_file` instead of `client_secret`. Relative paths start at the configuration directory. The file must be readable and non-empty after trimming whitespace. Specifying both fields stops startup. Keep the secret file outside Git. Direct library calls still require a secret string. Restart to read a changed secret file.
+
+Use `npx emulate start --service google --config emulate.config.yaml --no-default-seed` to skip built-in demo fixtures while keeping configured fixtures. Without the flag, defaults remain enabled.
+
+Google JSON and form API bodies support `Content-Encoding: gzip`, with a 2 MiB limit on both compressed and decoded bytes. Invalid gzip returns `400`; excessive gzip bodies return `413`; other encodings except `identity` return `415`. OAuth token forms are not included. Authentication and scope checks remain unchanged.
+
 ## Start
 
 Local listeners bind to `127.0.0.1` by default. For access from containers or other machines, pass `--host 0.0.0.0` to the CLI or `hostname: '0.0.0.0'` to `createEmulator`. Configure `--base-url` or `baseUrl` for advertised URLs reachable by those clients.

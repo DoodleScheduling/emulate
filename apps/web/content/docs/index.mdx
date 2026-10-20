@@ -29,6 +29,8 @@ All services listen on IPv4 loopback (`127.0.0.1`) by default. No config file ne
 
 ## CLI
 
+Use `npx emulate start --config emulate.config.yaml --no-default-seed` to skip built-in demo fixtures and load only configured fixtures. The default seed behavior stays unchanged. This flag does not change custom API initialization. Google CLI OAuth clients can read a mounted secret through `client_secret_file`; see [Configuration](/docs/configuration).
+
 ```bash
 # Start all services (zero-config)
 npx emulate
