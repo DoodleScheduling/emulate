@@ -978,6 +978,8 @@ OAuth 2.0, OpenID Connect, and mutable Google Workspace-style surfaces for local
 
 Google ID tokens are RS256-signed JWTs. The discovery document advertises RS256, and `/oauth2/v3/certs` returns the matching RSA public key used to verify issued tokens.
 
+The fork additions in this section are not published to npm. Build this branch from source before using these options.
+
 The CLI accepts `client_secret_file` instead of `client_secret` for Google OAuth clients. Use an absolute mounted file path, or a path relative to the configuration file. The CLI trims surrounding whitespace. An unreadable or empty file, or both secret fields on one client, stops startup. Direct `seedFromConfig` and `createEmulator` calls still take a secret string. Do not commit secret files.
 
 ```yaml
