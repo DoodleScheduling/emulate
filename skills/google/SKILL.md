@@ -479,6 +479,8 @@ curl http://localhost:4002/gmail/v1/users/me/settings/sendAs \
 
 ## Google Calendar API
 
+Event responses preserve `transparency`, with `opaque` as the default. `transparent` events do not block free/busy.
+
 ### Discovery
 
 The Calendar discovery document is public and describes the Calendar v3 methods supported by the emulator:

@@ -68,6 +68,8 @@ Google authentication is permissive by default for local bearer-token workflows.
 
 ## Calendar
 
+Event responses preserve `transparency`. The default is `opaque`, which blocks time. `transparent` events do not block free/busy.
+
 Google JSON and form API bodies accept `Content-Encoding: gzip`. Compressed input and decoded output each have a 2 MiB limit. Invalid gzip returns `400`, excessive bodies return `413`, and unsupported encodings return `415`. Uncompressed requests and authentication checks keep their existing behavior. OAuth token forms are not included.
 
 - `GET /discovery/v1/apis/calendar/v3/rest` - public Calendar v3 REST discovery document

@@ -995,6 +995,8 @@ Run `npx emulate start --service google --config emulate.config.yaml --no-defaul
 
 Google JSON and form API routes accept `Content-Encoding: gzip`. Gzip input and decoded output each have a 2 MiB limit. Invalid gzip returns `400`, excessive gzip bodies return `413`, and unsupported encodings return `415`. Requests without compression keep their existing behavior. OAuth token forms are not part of this compressed API-body support.
 
+Calendar event responses preserve `transparency`. An omitted value is returned as `opaque`, the Google default that blocks time. `transparent` events do not block free/busy.
+
 Google authentication is permissive by default for local bearer-token workflows. Set `google.strict_scopes: true` in seed config to require emulator-issued, unexpired access tokens on Gmail, Calendar, Drive, and userinfo routes. Invalid credentials return `401 UNAUTHENTICATED`; missing method scopes return `403` with `insufficientPermissions`. Strict mode distinguishes read, write, send, settings, and metadata scopes, and userinfo includes only granted identity claims. Revoking an access or refresh token invalidates the linked access and refresh credentials. Discovery, signing keys, and the sign-in page remain public. This mode checks method scopes; resource-specific grants such as `drive.file` and Gmail add-on scopes are not modeled.
 
 - `GET /o/oauth2/v2/auth` - authorization endpoint

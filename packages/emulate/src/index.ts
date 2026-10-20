@@ -87,6 +87,7 @@ AWS API coverage:
 Google Calendar discovery:
   GET /discovery/v1/apis/calendar/v3/rest returns the public discovery document for the emulated Calendar v3 surface.
   Google JSON and form API bodies accept gzip, limited to 2 MiB compressed and decoded. OAuth token forms are excluded.
+  Calendar event responses preserve transparency; the default opaque blocks time, while transparent does not.
 
 Google OIDC:
   Discovery advertises RS256 ID tokens, and GET /oauth2/v3/certs returns the RSA public key used to verify them.

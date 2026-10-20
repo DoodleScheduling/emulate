@@ -54,10 +54,42 @@ async function fixture(scope = "https://www.googleapis.com/auth/calendar") {
       },
       body: typeof body === "string" ? body : new Uint8Array(body).buffer,
     });
-  return { ...runtime, post };
+  return { ...runtime, post, token };
 }
 
 describe("Google gzip request bodies", () => {
+  it.each([undefined, "opaque", "transparent"])(
+    "preserves transparency %s in event reads and free/busy",
+    async (transparency) => {
+      const { app, post, token } = await fixture();
+      const response = await post(gzipSync(JSON.stringify({ ...input, transparency })), "gzip");
+      expect(response.status).toBe(200);
+      const created = (await response.json()) as { id: string; transparency: string };
+      expect(created.transparency).toBe(transparency ?? "opaque");
+      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+      const listed = await app.request(`${base}/calendar/v3/calendars/primary/events`, { headers });
+      expect(await listed.json()).toMatchObject({
+        items: [{ id: created.id, transparency: transparency ?? "opaque" }],
+      });
+      const busy = await app.request(`${base}/calendar/v3/freeBusy`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          timeMin: input.start.dateTime,
+          timeMax: input.end.dateTime,
+          items: [{ id: "primary" }],
+        }),
+      });
+      expect(await busy.json()).toMatchObject({
+        calendars: {
+          primary: {
+            busy: transparency === "transparent" ? [] : [{ start: input.start.dateTime, end: input.end.dateTime }],
+          },
+        },
+      });
+    },
+  );
+
   it.each([undefined, "identity", "gzip", " GZip "])("creates an event with encoding %s", async (encoding) => {
     const { post } = await fixture();
     const json = JSON.stringify(input);

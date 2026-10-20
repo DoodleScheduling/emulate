@@ -239,6 +239,7 @@ export function formatCalendarEventResource(gs: GoogleStore, event: GoogleCalend
     etag: `"${event.google_id}"`,
     id: event.google_id,
     status: event.status,
+    transparency: event.transparency ?? "opaque",
     htmlLink: event.html_link ?? undefined,
     hangoutLink: event.hangout_link ?? undefined,
     summary: event.summary,
